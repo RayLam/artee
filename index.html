@@ -20,10 +20,30 @@
         position: relative;
         overflow: hidden;
       }
+      /* Scanning Line Animation */
+      .scan-line {
+        position: absolute;
+        top: 0;
+        left: 10%;
+        width: 80%;
+        height: 4px;
+        background: rgba(0, 255, 128, 0.8);
+        box-shadow: 0 0 15px rgba(0, 255, 128, 0.8);
+        animation: scan 2.5s infinite ease-in-out;
+        z-index: 10;
+        pointer-events: none;
+      }
+      @keyframes scan {
+        0% { top: 20%; opacity: 0.2; }
+        50% { top: 80%; opacity: 1; }
+        100% { top: 20%; opacity: 0.2; }
+      }
     </style>
   </head>
   <body>
-    <div id="container"></div>
+    <div id="container">
+      <div id="scanner" class="scan-line"></div>
+    </div>
 
     <script>
       document.addEventListener("DOMContentLoaded", () => {
@@ -46,6 +66,15 @@
           // Attach plane to target
           const anchor = mindarThree.addAnchor(0);
           anchor.group.add(plane);
+
+          // Hide scanning line once target is found
+          const scannerEl = document.querySelector("#scanner");
+          anchor.onTargetFound = () => {
+            scannerEl.style.display = "none";
+          };
+          anchor.onTargetLost = () => {
+            scannerEl.style.display = "block";
+          };
 
           await mindarThree.start();
 
