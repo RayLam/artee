@@ -1,53 +1,69 @@
 <!doctype html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image.prod.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>WebAR Experience</title>
+    <!-- 1. Load Three.js first -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 2. Load MindAR for Three.js -->
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-three.prod.js"></script>
     <style>
       html, body {
         margin: 0;
         padding: 0;
-        width: 100vw;
-        height: 100vh;
+        width: 100%;
+        height: 100%;
         overflow: hidden;
         background-color: #000;
+        font-family: sans-serif;
       }
       #container {
         width: 100vw;
         height: 100vh;
         position: relative;
-        overflow: hidden;
       }
-      /* Scanning Line Animation */
-      .scan-line {
+      #start-btn {
         position: absolute;
-        top: 0;
-        left: 10%;
-        width: 80%;
-        height: 4px;
-        background: rgba(0, 255, 128, 0.8);
-        box-shadow: 0 0 15px rgba(0, 255, 128, 0.8);
-        animation: scan 2.5s infinite ease-in-out;
-        z-index: 10;
-        pointer-events: none;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 999;
+        padding: 15px 30px;
+        font-size: 18px;
+        font-weight: bold;
+        background: #00ff80;
+        border: none;
+        border-radius: 8px;
+        color: #000;
+        cursor: pointer;
       }
-      @keyframes scan {
-        0% { top: 20%; opacity: 0.2; }
-        50% { top: 80%; opacity: 1; }
-        100% { top: 20%; opacity: 0.2; }
+      #debug-log {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        color: #ff3333;
+        background: rgba(0,0,0,0.8);
+        padding: 8px;
+        font-size: 12px;
+        z-index: 1000;
+        max-width: 90%;
       }
     </style>
   </head>
   <body>
-    <div id="container">
-      <div id="scanner" class="scan-line"></div>
-    </div>
+    <button id="start-btn">TAP TO START AR</button>
+    <div id="container"></div>
+    <div id="debug-log"></div>
 
     <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const start = async () => {
+      const logEl = document.getElementById("debug-log");
+      function log(msg) { logEl.innerText = msg; }
+
+      document.getElementById("start-btn").addEventListener("click", async () => {
+        document.getElementById("start-btn").style.display = "none";
+        log("Initializing AR...");
+
+        try {
           const mindarThree = new window.MINDAR.IMAGE.MindARThree({
             container: document.querySelector("#container"),
             imageTargetSrc: "./assets/targets.mind",
@@ -57,33 +73,32 @@
 
           const { renderer, scene, camera } = mindarThree;
 
-          // Load overlay image
-          const texture = new THREE.TextureLoader().load('./assets/asset.jpeg');
+          const texture = new THREE.TextureLoader().load(
+            './assets/asset.jpeg',
+            () => log("Asset loaded! Point camera at t-shirt."),
+            undefined,
+            (err) => log("Error loading asset.jpeg from assets folder")
+          );
+
           const geometry = new THREE.PlaneGeometry(1.3, 0.8);
           const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
           const plane = new THREE.Mesh(geometry, material);
 
-          // Attach plane to target
           const anchor = mindarThree.addAnchor(0);
           anchor.group.add(plane);
 
-          // Hide scanning line once target is found
-          const scannerEl = document.querySelector("#scanner");
-          anchor.onTargetFound = () => {
-            scannerEl.style.display = "none";
-          };
-          anchor.onTargetLost = () => {
-            scannerEl.style.display = "block";
-          };
+          anchor.onTargetFound = () => log("T-shirt detected!");
+          anchor.onTargetLost = () => log("Scanning for t-shirt...");
 
           await mindarThree.start();
+          log("Camera active. Scanning...");
 
           renderer.setAnimationLoop(() => {
             renderer.render(scene, camera);
           });
-        };
-
-        start();
+        } catch (e) {
+          log("AR Error: " + e.message);
+        }
       });
     </script>
   </body>
