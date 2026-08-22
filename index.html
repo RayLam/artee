@@ -13,30 +13,10 @@
         overflow: hidden;
       }
     </style>
-    <script>
-      // Custom A-Frame component to handle strict visibility toggling
-      AFRAME.registerComponent('track-visibility', {
-        init: function () {
-          const el = this.el;
-          const overlayPlane = this.el.querySelector('.ar-overlay');
-
-          // Hide on init
-          if (overlayPlane) overlayPlane.setAttribute('visible', false);
-
-          el.addEventListener('targetFound', () => {
-            if (overlayPlane) overlayPlane.setAttribute('visible', true);
-          });
-
-          el.addEventListener('targetLost', () => {
-            if (overlayPlane) overlayPlane.setAttribute('visible', false);
-          });
-        }
-      });
-    </script>
   </head>
   <body>
     <a-scene 
-      mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes;" 
+      mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes; missTolerance: 3; filterMinCF: 0.001; filterBeta: 0.01;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
@@ -48,15 +28,13 @@
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity mindar-image-target="targetIndex: 0" track-visibility>
+      <a-entity mindar-image-target="targetIndex: 0">
         <a-plane 
-          class="ar-overlay"
           src="#overlay" 
           position="0 0 0" 
           height="0.8" 
           width="1.3" 
-          rotation="0 0 0"
-          visible="false">
+          rotation="0 0 0">
         </a-plane>
       </a-entity>
     </a-scene>
