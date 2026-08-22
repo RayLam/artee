@@ -13,6 +13,26 @@
         overflow: hidden;
       }
     </style>
+    <script>
+      // Custom A-Frame component to handle strict visibility toggling
+      AFRAME.registerComponent('track-visibility', {
+        init: function () {
+          const el = this.el;
+          const overlayPlane = this.el.querySelector('.ar-overlay');
+
+          // Hide on init
+          if (overlayPlane) overlayPlane.setAttribute('visible', false);
+
+          el.addEventListener('targetFound', () => {
+            if (overlayPlane) overlayPlane.setAttribute('visible', true);
+          });
+
+          el.addEventListener('targetLost', () => {
+            if (overlayPlane) overlayPlane.setAttribute('visible', false);
+          });
+        }
+      });
+    </script>
   </head>
   <body>
     <a-scene 
@@ -28,10 +48,9 @@
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity id="mytarget" mindar-image-target="targetIndex: 0">
-        <!-- visible: false hides the overlay until the target shirt is detected -->
+      <a-entity mindar-image-target="targetIndex: 0" track-visibility>
         <a-plane 
-          id="ar-plane"
+          class="ar-overlay"
           src="#overlay" 
           position="0 0 0" 
           height="0.8" 
@@ -41,22 +60,5 @@
         </a-plane>
       </a-entity>
     </a-scene>
-
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const targetEl = document.querySelector("#mytarget");
-        const planeEl = document.querySelector("#ar-plane");
-
-        // Show overlay only when t-shirt is in frame
-        targetEl.addEventListener("targetFound", () => {
-          planeEl.setAttribute("visible", true);
-        });
-
-        // Hide overlay instantly when pointing camera away from t-shirt
-        targetEl.addEventListener("targetLost", () => {
-          planeEl.setAttribute("visible", false);
-        });
-      });
-    </script>
   </body>
 </html>
