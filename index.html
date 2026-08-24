@@ -3,9 +3,7 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WebAR T-Shirt Experience</title>
-    <!-- A-Frame Core -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <!-- MindAR A-Frame Web Component Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
       html, body {
@@ -20,7 +18,7 @@
   </head>
   <body>
     <a-scene 
-      mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes; missTolerance: 10; filterMinCF: 0.0001; filterBeta: 0.001;" 
+      mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes; missTolerance: 30; warmupTolerance: 1; filterMinCF: 0.00001; filterBeta: 0.0001;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
@@ -40,9 +38,7 @@
           height="0.8" 
           width="1.3" 
           rotation="0 0 0"
-          visible="false"
-          animation="property: components.material.material.opacity; startEvents: fade-in; from: 0; to: 1; dur: 300;"
-          animation__out="property: components.material.material.opacity; startEvents: fade-out; from: 1; to: 0; dur: 200;">
+          visible="false">
         </a-plane>
       </a-entity>
     </a-scene>
@@ -53,19 +49,11 @@
           const planeEl = document.querySelector("#plane");
           
           this.el.addEventListener("targetFound", () => {
-            if (planeEl) {
-              planeEl.setAttribute("visible", "true");
-              planeEl.emit("fade-in");
-            }
+            if (planeEl) planeEl.setAttribute("visible", "true");
           });
 
           this.el.addEventListener("targetLost", () => {
-            if (planeEl) {
-              planeEl.emit("fade-out");
-              setTimeout(() => {
-                planeEl.setAttribute("visible", "false");
-              }, 200);
-            }
+            if (planeEl) planeEl.setAttribute("visible", "false");
           });
         }
       });
