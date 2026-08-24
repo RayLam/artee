@@ -14,7 +14,6 @@
         overflow: hidden;
         background-color: transparent;
       }
-      /* Photo Capture Button */
       #snap-btn {
         position: fixed;
         bottom: 30px;
@@ -25,20 +24,57 @@
         background-color: #ffffff;
         border: 4px solid #00ff80;
         border-radius: 50%;
-        z-index: 99999;
+        z-index: 9999;
         cursor: pointer;
         outline: none;
         box-shadow: 0 4px 10px rgba(0,0,0,0.5);
       }
-      #snap-btn:active {
-        transform: translateX(-50%) scale(0.9);
-        background-color: #00ff80;
+      /* Photo Preview Modal for iOS */
+      #preview-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.9);
+        z-index: 99999;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+      #preview-img {
+        max-width: 85%;
+        max-height: 75%;
+        border-radius: 12px;
+        box-shadow: 0 0 20px rgba(0,255,128,0.4);
+      }
+      #save-instructions {
+        color: #fff;
+        margin-top: 15px;
+        font-family: sans-serif;
+        font-size: 14px;
+      }
+      #close-btn {
+        margin-top: 15px;
+        padding: 10px 24px;
+        background: #00ff80;
+        border: none;
+        border-radius: 20px;
+        font-weight: bold;
+        cursor: pointer;
       }
     </style>
   </head>
   <body>
-    <!-- Shutter Button -->
     <button id="snap-btn" aria-label="Take Photo"></button>
+
+    <!-- Preview Modal -->
+    <div id="preview-modal">
+      <img id="preview-img" alt="Captured WebAR Snap" />
+      <div id="save-instructions">Press and hold image to <b>Save to Photos</b></div>
+      <button id="close-btn">Take Another</button>
+    </div>
 
     <a-scene 
       mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes; missTolerance: 30; warmupTolerance: 1; filterMinCF: 0.00001; filterBeta: 0.0001;" 
@@ -54,7 +90,6 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity id="target" mindar-image-target="targetIndex: 0">
-        <!-- Standard transparent material (prevents black screen artifact) -->
         <a-plane 
           id="plane"
           src="#overlay" 
@@ -85,8 +120,13 @@
 
       document.querySelector("#target").setAttribute("ar-tracker", "");
 
-      // Snapshot functionality
-      document.querySelector("#snap-btn").addEventListener("click", () => {
+      // Photo capture & preview trigger
+      const snapBtn = document.querySelector("#snap-btn");
+      const modal = document.querySelector("#preview-modal");
+      const previewImg = document.querySelector("#preview-img");
+      const closeBtn = document.querySelector("#close-btn");
+
+      snapBtn.addEventListener("click", () => {
         const scene = document.querySelector("a-scene");
         const video = document.querySelector("video");
         
@@ -95,19 +135,17 @@
         canvas.height = video.videoHeight || window.innerHeight;
         const ctx = canvas.getContext("2d");
 
-        // 1. Draw live camera video
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        // 2. Overlay AR graphic
         const webglCanvas = scene.renderer.domElement;
         ctx.drawImage(webglCanvas, 0, 0, canvas.width, canvas.height);
 
-        // 3. Download image
-        const dataURL = canvas.toDataURL("image/png");
-        const link = document.createElement("a");
-        link.download = "webar-photo.png";
-        link.href = dataURL;
-        link.click();
+        // Display captured photo in popup modal
+        previewImg.src = canvas.toDataURL("image/png");
+        modal.style.display = "flex";
+      });
+
+      closeBtn.addEventListener("click", () => {
+        modal.style.display = "none";
       });
     </script>
   </body>
