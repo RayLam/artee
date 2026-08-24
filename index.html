@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>WebAR T-Shirt Experience</title>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
@@ -22,39 +22,38 @@
       vr-mode-ui="enabled: false" 
       device-orientation-permission-ui="enabled: false">
       
-      <a-assets>
-        <img id="overlay" src="./assets/asset.jpeg" crossorigin="anonymous" />
-      </a-assets>
-
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity id="target-entity" mindar-image-target="targetIndex: 0">
-        <!-- Plane starts with scale 0 0 0 so it is physically impossible to see on screen -->
-        <a-plane 
-          id="ar-overlay"
-          src="#overlay" 
-          position="0 0 0" 
-          scale="0 0 0"
-          height="0.8" 
-          width="1.3" 
-          rotation="0 0 0">
-        </a-plane>
-      </a-entity>
+      <a-entity id="target" mindar-image-target="targetIndex: 0"></a-entity>
     </a-scene>
 
     <script>
-      window.addEventListener("DOMContentLoaded", () => {
-        const targetEntity = document.querySelector("#target-entity");
-        const overlayPlane = document.querySelector("#ar-overlay");
+      document.addEventListener("DOMContentLoaded", () => {
+        const sceneEl = document.querySelector("a-scene");
+        const targetEl = document.querySelector("#target");
 
-        // Only scale the plane up to normal size when MindAR locks onto the t-shirt
-        targetEntity.addEventListener("targetFound", () => {
-          overlayPlane.setAttribute("scale", "1 1 1");
-        });
+        sceneEl.addEventListener("loaded", () => {
+          // Create Three.js mesh manually
+          const texture = new THREE.TextureLoader().load("./assets/asset.jpeg");
+          const geometry = new THREE.PlaneGeometry(1.3, 0.8);
+          const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+          const mesh = new THREE.Mesh(geometry, material);
 
-        // Instantly shrink scale back to zero when looking away
-        targetEntity.addEventListener("targetLost", () => {
-          overlayPlane.setAttribute("scale", "0 0 0");
+          // Force invisible on startup
+          mesh.visible = false;
+
+          // Attach directly to MindAR anchor group
+          const object3D = targetEl.object3D;
+          object3D.add(mesh);
+
+          // Toggle visibility on target events
+          targetEl.addEventListener("targetFound", () => {
+            mesh.visible = true;
+          });
+
+          targetEl.addEventListener("targetLost", () => {
+            mesh.visible = false;
+          });
         });
       });
     </script>
