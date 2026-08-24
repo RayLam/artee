@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WebAR T-Shirt Experience</title>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
@@ -12,11 +12,27 @@
         height: 100vh;
         overflow: hidden;
       }
+      #error-log {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: rgba(255, 0, 0, 0.85);
+        color: #fff;
+        padding: 10px;
+        font-family: monospace;
+        font-size: 12px;
+        z-index: 99999;
+        display: none;
+        max-width: 90%;
+        border-radius: 5px;
+      }
     </style>
   </head>
   <body>
+    <div id="error-log"></div>
+
     <a-scene 
-      mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes; warmupTolerance: 5; missTolerance: 2;" 
+      mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
@@ -42,6 +58,23 @@
     </a-scene>
 
     <script>
+      function showErr(msg) {
+        const el = document.getElementById("error-log");
+        el.style.display = "block";
+        el.innerText = msg;
+      }
+
+      // Catch image loading failures
+      document.querySelector("#overlay").addEventListener("error", () => {
+        showErr("Error: Cannot load assets/asset.jpeg. Check file name in GitHub.");
+      });
+
+      // Catch MindAR target system initialization failures
+      document.querySelector("a-scene").addEventListener("arError", (event) => {
+        showErr("MindAR Error: Failed to load assets/targets.mind target file.");
+      });
+
+      // Strict target visibility binding
       document.addEventListener("DOMContentLoaded", () => {
         const targetEl = document.querySelector("#target");
         const planeEl = document.querySelector("#plane");
