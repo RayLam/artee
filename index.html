@@ -20,7 +20,7 @@
   </head>
   <body>
     <a-scene 
-      mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes;" 
+      mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes; missTolerance: 10; filterMinCF: 0.0001; filterBeta: 0.001;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
@@ -40,28 +40,36 @@
           height="0.8" 
           width="1.3" 
           rotation="0 0 0"
-          visible="false">
+          visible="false"
+          animation="property: components.material.material.opacity; startEvents: fade-in; from: 0; to: 1; dur: 300;"
+          animation__out="property: components.material.material.opacity; startEvents: fade-out; from: 1; to: 0; dur: 200;">
         </a-plane>
       </a-entity>
     </a-scene>
 
     <script>
-      // Pure A-Frame component lifecycle binding
       AFRAME.registerComponent('ar-tracker', {
         init: function () {
           const planeEl = document.querySelector("#plane");
           
           this.el.addEventListener("targetFound", () => {
-            if (planeEl) planeEl.setAttribute("visible", "true");
+            if (planeEl) {
+              planeEl.setAttribute("visible", "true");
+              planeEl.emit("fade-in");
+            }
           });
 
           this.el.addEventListener("targetLost", () => {
-            if (planeEl) planeEl.setAttribute("visible", "false");
+            if (planeEl) {
+              planeEl.emit("fade-out");
+              setTimeout(() => {
+                planeEl.setAttribute("visible", "false");
+              }, 200);
+            }
           });
         }
       });
 
-      // Attach tracker component to target entity
       document.querySelector("#target").setAttribute("ar-tracker", "");
     </script>
   </body>
