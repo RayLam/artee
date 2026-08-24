@@ -3,10 +3,8 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>WebAR T-Shirt Experience</title>
-    <!-- Load Three.js core -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Load MindAR Three.js engine -->
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
       html, body {
@@ -18,11 +16,6 @@
         background-color: #000;
         font-family: sans-serif;
       }
-      #container {
-        width: 100vw;
-        height: 100vh;
-        position: relative;
-      }
       #start-overlay {
         position: fixed;
         top: 0;
@@ -30,7 +23,7 @@
         width: 100vw;
         height: 100vh;
         background: #000;
-        z-index: 9999;
+        z-index: 99999;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -46,7 +39,7 @@
         border-radius: 30px;
         cursor: pointer;
       }
-      #status {
+      #status-msg {
         color: #fff;
         margin-top: 15px;
         font-size: 14px;
@@ -56,53 +49,63 @@
   <body>
     <div id="start-overlay">
       <button id="start-btn">START AR CAMERA</button>
-      <div id="status">Tap button to start camera</div>
+      <div id="status-msg">Tap to launch camera</div>
     </div>
 
-    <div id="container"></div>
+    <a-scene 
+      mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: false; uiLoading: yes; uiScanning: yes; uiError: yes;" 
+      color-space="sRGB" 
+      renderer="colorManagement: true, physicallyCorrectLights" 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false">
+      
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <a-entity id="target" mindar-image-target="targetIndex: 0"></a-entity>
+    </a-scene>
 
     <script>
       const startBtn = document.getElementById("start-btn");
       const overlay = document.getElementById("start-overlay");
-      const statusEl = document.getElementById("status");
+      const statusMsg = document.getElementById("status-msg");
 
-      startBtn.addEventListener("click", async () => {
-        statusEl.innerText = "Initializing camera...";
+      // Wait for scene to load before binding start event
+      document.querySelector("a-scene").addEventListener("loaded", () => {
+        startBtn.addEventListener("click", () => {
+          statusMsg.innerText = "Starting camera...";
+          
+          const sceneEl = document.querySelector("a-scene");
+          const arSystem = sceneEl.systems["mindar-image-system"];
 
-        try {
-          const mindarThree = new window.MINDAR.IMAGE.MindARThree({
-            container: document.querySelector("#container"),
-            imageTargetSrc: "./assets/targets.mind",
-            filterMinCF: 0.0001,
-            filterBeta: 0.001
-          });
+          if (arSystem) {
+            arSystem.start();
+            overlay.style.display = "none";
+          } else {
+            statusMsg.innerText = "Error: AR System failed to initialize.";
+          }
+        });
 
-          const { renderer, scene, camera } = mindarThree;
+        // Setup image overlay mesh directly in Three.js on target
+        const targetEl = document.querySelector("#target");
+        let overlayMesh = null;
 
-          // Load image overlay
-          const texture = new THREE.TextureLoader().load('./assets/asset.jpeg');
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load("./assets/asset.jpeg", (texture) => {
           const geometry = new THREE.PlaneGeometry(1.3, 0.8);
           const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
-          const plane = new THREE.Mesh(geometry, material);
-          plane.visible = false; // Start hidden
+          overlayMesh = new THREE.Mesh(geometry, material);
+          overlayMesh.visible = false;
 
-          // Attach to target anchor
-          const anchor = mindarThree.addAnchor(0);
-          anchor.group.add(plane);
+          targetEl.object3D.add(overlayMesh);
+        });
 
-          anchor.onTargetFound = () => { plane.visible = true; };
-          anchor.onTargetLost = () => { plane.visible = false; };
+        targetEl.addEventListener("targetFound", () => {
+          if (overlayMesh) overlayMesh.visible = true;
+        });
 
-          // Start engine & camera
-          await mindarThree.start();
-          overlay.style.display = "none";
-
-          renderer.setAnimationLoop(() => {
-            renderer.render(scene, camera);
-          });
-        } catch (err) {
-          statusEl.innerText = "Error: " + err.message;
-        }
+        targetEl.addEventListener("targetLost", () => {
+          if (overlayMesh) overlayMesh.visible = false;
+        });
       });
     </script>
   </body>
