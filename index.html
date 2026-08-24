@@ -29,7 +29,6 @@
         outline: none;
         box-shadow: 0 4px 10px rgba(0,0,0,0.5);
       }
-      /* Photo Preview Modal for iOS */
       #preview-modal {
         display: none;
         position: fixed;
@@ -69,7 +68,6 @@
   <body>
     <button id="snap-btn" aria-label="Take Photo"></button>
 
-    <!-- Preview Modal -->
     <div id="preview-modal">
       <img id="preview-img" alt="Captured WebAR Snap" />
       <div id="save-instructions">Press and hold image to <b>Save to Photos</b></div>
@@ -120,26 +118,34 @@
 
       document.querySelector("#target").setAttribute("ar-tracker", "");
 
-      // Photo capture & preview trigger
       const snapBtn = document.querySelector("#snap-btn");
       const modal = document.querySelector("#preview-modal");
       const previewImg = document.querySelector("#preview-img");
       const closeBtn = document.querySelector("#close-btn");
 
       snapBtn.addEventListener("click", () => {
-        const scene = document.querySelector("a-scene");
+        const sceneEl = document.querySelector("a-scene");
         const video = document.querySelector("video");
         
+        // Force WebGL renderer to preserve drawing buffer state
+        sceneEl.renderer.preserveDrawingBuffer = true;
+        
+        // Force immediate render pass so asset.jpeg stays on WebGL context
+        sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+
         const canvas = document.createElement("canvas");
         canvas.width = video.videoWidth || window.innerWidth;
         canvas.height = video.videoHeight || window.innerHeight;
         const ctx = canvas.getContext("2d");
 
+        // 1. Draw camera feed
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const webglCanvas = scene.renderer.domElement;
+
+        // 2. Draw active AR WebGL layer on top
+        const webglCanvas = sceneEl.renderer.domElement;
         ctx.drawImage(webglCanvas, 0, 0, canvas.width, canvas.height);
 
-        // Display captured photo in popup modal
+        // 3. Output composite image
         previewImg.src = canvas.toDataURL("image/png");
         modal.style.display = "flex";
       });
