@@ -126,28 +126,28 @@
       snapBtn.addEventListener("click", () => {
         const sceneEl = document.querySelector("a-scene");
         const video = document.querySelector("video");
-        
-        // Force WebGL renderer to preserve drawing buffer state
-        sceneEl.renderer.preserveDrawingBuffer = true;
-        
-        // Force immediate render pass so asset.jpeg stays on WebGL context
-        sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
 
-        const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth || window.innerWidth;
-        canvas.height = video.videoHeight || window.innerHeight;
-        const ctx = canvas.getContext("2d");
+        // Request animation frame to guarantee we catch the WebGL context right after target drawing
+        requestAnimationFrame(() => {
+          // Render the Three.js scene synchronously onto the buffer
+          sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
 
-        // 1. Draw camera feed
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth || window.innerWidth;
+          canvas.height = video.videoHeight || window.innerHeight;
+          const ctx = canvas.getContext("2d");
 
-        // 2. Draw active AR WebGL layer on top
-        const webglCanvas = sceneEl.renderer.domElement;
-        ctx.drawImage(webglCanvas, 0, 0, canvas.width, canvas.height);
+          // 1. Draw live video background
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // 3. Output composite image
-        previewImg.src = canvas.toDataURL("image/png");
-        modal.style.display = "flex";
+          // 2. Overlay WebGL canvas containing asset.jpeg
+          const webglCanvas = sceneEl.renderer.domElement;
+          ctx.drawImage(webglCanvas, 0, 0, canvas.width, canvas.height);
+
+          // 3. Set preview image source
+          previewImg.src = canvas.toDataURL("image/png");
+          modal.style.display = "flex";
+        });
       });
 
       closeBtn.addEventListener("click", () => {
