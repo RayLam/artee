@@ -90,13 +90,12 @@
       device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <img id="overlay" src="./assets/asset.png?v=4" crossorigin="anonymous" />
+        <img id="overlay" src="./assets/asset.png?v=5" crossorigin="anonymous" />
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity id="target" mindar-image-target="targetIndex: 0">
-        <!-- Transparent material with alpha cutout -->
         <a-plane 
           id="plane"
           src="#overlay" 
@@ -105,7 +104,7 @@
           width="1.2" 
           rotation="0 0 0"
           visible="false"
-          material="transparent: true; opacity: 0.85; alphaTest: 0.1;">
+          material="transparent: true; opacity: 0.9; alphaTest: 0.1;">
         </a-plane>
       </a-entity>
     </a-scene>
@@ -139,7 +138,6 @@
         const video = document.querySelector("video");
 
         requestAnimationFrame(() => {
-          // Force WebGL frame update
           sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
 
           const canvas = document.createElement("canvas");
@@ -149,14 +147,13 @@
 
           const webglCanvas = sceneEl.renderer.domElement;
 
-          // 1. Draw live camera video feed
+          // 1. Draw live camera feed
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-          // 2. Draw black transparent tag directly over camera feed
+          // 2. Draw WebGL tag layer cleanly over video
           ctx.globalCompositeOperation = "source-over";
           ctx.drawImage(webglCanvas, 0, 0, canvas.width, canvas.height);
 
-          // Save image blob for native share/save menu
           canvas.toBlob((blob) => {
             capturedBlob = blob;
             previewImg.src = URL.createObjectURL(blob);
@@ -165,7 +162,6 @@
         });
       });
 
-      // Save directly to Photos via iOS native action sheet
       saveBtn.addEventListener("click", async () => {
         if (!capturedBlob) return;
         const file = new File([capturedBlob], "webar-photo.png", { type: "image/png" });
@@ -177,7 +173,7 @@
               title: "AR T-Shirt Photo",
             });
           } catch (err) {
-            console.log("Share cancelled", err);
+            console.log("Share dismissed", err);
           }
         } else {
           const link = document.createElement("a");
