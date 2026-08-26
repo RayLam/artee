@@ -82,7 +82,7 @@
       device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <img id="overlay" src="./assets/asset.png" crossorigin="anonymous" />
+        <img id="overlay" src="./assets/asset.png?v=2" crossorigin="anonymous" />
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -137,8 +137,16 @@
 
           const webglCanvas = sceneEl.renderer.domElement;
 
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          // 1. Draw WebGL tag layer on bottom canvas
           ctx.drawImage(webglCanvas, 0, 0, canvas.width, canvas.height);
+
+          // 2. Composite camera video over tag using Lighten mode
+          // (Tee fabric & print overwrite dark lines of the tag)
+          ctx.globalCompositeOperation = "lighten";
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          // Reset composite mode
+          ctx.globalCompositeOperation = "source-over";
 
           previewImg.src = canvas.toDataURL("image/png");
           modal.style.display = "flex";
