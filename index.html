@@ -90,21 +90,22 @@
       device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <img id="overlay" src="./assets/asset.png?v=3" crossorigin="anonymous" />
+        <img id="overlay" src="./assets/asset.png?v=4" crossorigin="anonymous" />
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity id="target" mindar-image-target="targetIndex: 0">
+        <!-- Transparent material with alpha cutout -->
         <a-plane 
           id="plane"
           src="#overlay" 
           position="0 0 0" 
-          height="1.0" 
-          width="1.0" 
+          height="1.2" 
+          width="1.2" 
           rotation="0 0 0"
           visible="false"
-          material="transparent: true; alphaTest: 0.5;">
+          material="transparent: true; opacity: 0.85; alphaTest: 0.1;">
         </a-plane>
       </a-entity>
     </a-scene>
@@ -138,6 +139,7 @@
         const video = document.querySelector("video");
 
         requestAnimationFrame(() => {
+          // Force WebGL frame update
           sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
 
           const canvas = document.createElement("canvas");
@@ -147,19 +149,14 @@
 
           const webglCanvas = sceneEl.renderer.domElement;
 
-          // 1. Draw solid white base
-          ctx.fillStyle = "#FFFFFF";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          // 1. Draw live camera video feed
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-          // 2. Draw black tag line art
+          // 2. Draw black transparent tag directly over camera feed
+          ctx.globalCompositeOperation = "source-over";
           ctx.drawImage(webglCanvas, 0, 0, canvas.width, canvas.height);
 
-          // 3. Multiply camera feed over tag (Tee graphic and shirt sit in front)
-          ctx.globalCompositeOperation = "multiply";
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          ctx.globalCompositeOperation = "source-over";
-
-          // Convert to blob for native iOS sharing
+          // Save image blob for native share/save menu
           canvas.toBlob((blob) => {
             capturedBlob = blob;
             previewImg.src = URL.createObjectURL(blob);
@@ -168,7 +165,7 @@
         });
       });
 
-      // Save image directly to iOS Camera Roll via native sheet
+      // Save directly to Photos via iOS native action sheet
       saveBtn.addEventListener("click", async () => {
         if (!capturedBlob) return;
         const file = new File([capturedBlob], "webar-photo.png", { type: "image/png" });
@@ -183,7 +180,6 @@
             console.log("Share cancelled", err);
           }
         } else {
-          // Fallback download for desktop browsers
           const link = document.createElement("a");
           link.href = previewImg.src;
           link.download = "webar-photo.png";
