@@ -44,24 +44,30 @@
       }
       #preview-img {
         max-width: 85%;
-        max-height: 75%;
+        max-height: 65%;
         border-radius: 12px;
         box-shadow: 0 0 20px rgba(0,255,128,0.4);
       }
-      #save-instructions {
-        color: #fff;
-        margin-top: 15px;
-        font-family: sans-serif;
-        font-size: 14px;
+      .btn-group {
+        display: flex;
+        gap: 15px;
+        margin-top: 20px;
+      }
+      .modal-btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 25px;
+        font-weight: bold;
+        font-size: 15px;
+        cursor: pointer;
+      }
+      #save-btn {
+        background-color: #00ff80;
+        color: #000;
       }
       #close-btn {
-        margin-top: 15px;
-        padding: 10px 24px;
-        background: #00ff80;
-        border: none;
-        border-radius: 20px;
-        font-weight: bold;
-        cursor: pointer;
+        background-color: #ffffff;
+        color: #000;
       }
     </style>
   </head>
@@ -70,8 +76,10 @@
 
     <div id="preview-modal">
       <img id="preview-img" alt="Captured WebAR Snap" />
-      <div id="save-instructions">Press and hold image to <b>Save to Photos</b></div>
-      <button id="close-btn">Take Another</button>
+      <div class="btn-group">
+        <button id="save-btn" class="modal-btn">Save to Photos</button>
+        <button id="close-btn" class="modal-btn">Retake</button>
+      </div>
     </div>
 
     <a-scene 
@@ -82,7 +90,7 @@
       device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <img id="overlay" src="./assets/asset.png?v=2" crossorigin="anonymous" />
+        <img id="overlay" src="./assets/asset.png?v=3" crossorigin="anonymous" />
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -121,7 +129,9 @@
       const snapBtn = document.querySelector("#snap-btn");
       const modal = document.querySelector("#preview-modal");
       const previewImg = document.querySelector("#preview-img");
+      const saveBtn = document.querySelector("#save-btn");
       const closeBtn = document.querySelector("#close-btn");
+      let capturedBlob = null;
 
       snapBtn.addEventListener("click", () => {
         const sceneEl = document.querySelector("a-scene");
@@ -137,20 +147,48 @@
 
           const webglCanvas = sceneEl.renderer.domElement;
 
-          // 1. Draw WebGL tag layer on bottom canvas
+          // 1. Draw solid white base
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // 2. Draw black tag line art
           ctx.drawImage(webglCanvas, 0, 0, canvas.width, canvas.height);
 
-          // 2. Composite camera video over tag using Lighten mode
-          // (Tee fabric & print overwrite dark lines of the tag)
-          ctx.globalCompositeOperation = "lighten";
+          // 3. Multiply camera feed over tag (Tee graphic and shirt sit in front)
+          ctx.globalCompositeOperation = "multiply";
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-          // Reset composite mode
           ctx.globalCompositeOperation = "source-over";
 
-          previewImg.src = canvas.toDataURL("image/png");
-          modal.style.display = "flex";
+          // Convert to blob for native iOS sharing
+          canvas.toBlob((blob) => {
+            capturedBlob = blob;
+            previewImg.src = URL.createObjectURL(blob);
+            modal.style.display = "flex";
+          }, "image/png");
         });
+      });
+
+      // Save image directly to iOS Camera Roll via native sheet
+      saveBtn.addEventListener("click", async () => {
+        if (!capturedBlob) return;
+        const file = new File([capturedBlob], "webar-photo.png", { type: "image/png" });
+
+        if (navigator.share && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: "AR T-Shirt Photo",
+            });
+          } catch (err) {
+            console.log("Share cancelled", err);
+          }
+        } else {
+          // Fallback download for desktop browsers
+          const link = document.createElement("a");
+          link.href = previewImg.src;
+          link.download = "webar-photo.png";
+          link.click();
+        }
       });
 
       closeBtn.addEventListener("click", () => {
