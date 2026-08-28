@@ -90,13 +90,12 @@
       device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <img id="overlay" src="./assets/asset.png?v=7" crossorigin="anonymous" />
+        <img id="overlay" src="./assets/asset.png?v=8" crossorigin="anonymous" />
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity id="target" mindar-image-target="targetIndex: 0">
-        <!-- Render transparent plane with colored tint -->
         <a-plane 
           id="plane"
           src="#overlay" 
@@ -132,13 +131,14 @@
       const previewImg = document.querySelector("#preview-img");
       const saveBtn = document.querySelector("#save-btn");
       const closeBtn = document.querySelector("#close-btn");
-      let capturedBlob = null;
+      let dataUrlString = "";
 
       snapBtn.addEventListener("click", () => {
         const sceneEl = document.querySelector("a-scene");
         const video = document.querySelector("video");
 
         requestAnimationFrame(() => {
+          // Force active frame render
           sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
 
           const canvas = document.createElement("canvas");
@@ -148,25 +148,28 @@
 
           const webglCanvas = sceneEl.renderer.domElement;
 
-          // 1. Draw WebGL layer first on bottom
+          // 1. Draw WebGL layer first
           ctx.drawImage(webglCanvas, 0, 0, canvas.width, canvas.height);
 
-          // 2. Blend camera feed over colored graphic using Lighten
+          // 2. Composite video feed over WebGL layer
           ctx.globalCompositeOperation = "lighten";
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           ctx.globalCompositeOperation = "source-over";
 
-          canvas.toBlob((blob) => {
-            capturedBlob = blob;
-            previewImg.src = URL.createObjectURL(blob);
-            modal.style.display = "flex";
-          }, "image/png");
+          // Immediate synchronous DataURL extraction (prevents buffer clearing)
+          dataUrlString = canvas.toDataURL("image/png");
+          previewImg.src = dataUrlString;
+          modal.style.display = "flex";
         });
       });
 
       saveBtn.addEventListener("click", async () => {
-        if (!capturedBlob) return;
-        const file = new File([capturedBlob], "webar-photo.png", { type: "image/png" });
+        if (!dataUrlString) return;
+
+        // Convert DataURL to file synchronously for Web Share API
+        const res = await fetch(dataUrlString);
+        const blob = await res.blob();
+        const file = new File([blob], "webar-photo.png", { type: "image/png" });
 
         if (navigator.share && navigator.canShare({ files: [file] })) {
           try {
@@ -179,7 +182,7 @@
           }
         } else {
           const link = document.createElement("a");
-          link.href = previewImg.src;
+          link.href = dataUrlString;
           link.download = "webar-photo.png";
           link.click();
         }
