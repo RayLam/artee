@@ -90,13 +90,13 @@
       device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <img id="overlay" src="./assets/asset.png?v=6" crossorigin="anonymous" />
+        <img id="overlay" src="./assets/asset.png?v=7" crossorigin="anonymous" />
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity id="target" mindar-image-target="targetIndex: 0">
-        <!-- Multiply blending drops black lines BEHIND physical light colors -->
+        <!-- Render transparent plane with colored tint -->
         <a-plane 
           id="plane"
           src="#overlay" 
@@ -105,7 +105,7 @@
           width="1.2" 
           rotation="0 0 0"
           visible="false"
-          material="transparent: true; blending: multiply;">
+          material="transparent: true; opacity: 0.85; alphaTest: 0.1; color: #00ff80;">
         </a-plane>
       </a-entity>
     </a-scene>
@@ -148,12 +148,13 @@
 
           const webglCanvas = sceneEl.renderer.domElement;
 
-          // 1. Draw live camera video feed
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-          // 2. Composite multiply-blended WebGL layer directly over video
-          ctx.globalCompositeOperation = "source-over";
+          // 1. Draw WebGL layer first on bottom
           ctx.drawImage(webglCanvas, 0, 0, canvas.width, canvas.height);
+
+          // 2. Blend camera feed over colored graphic using Lighten
+          ctx.globalCompositeOperation = "lighten";
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          ctx.globalCompositeOperation = "source-over";
 
           canvas.toBlob((blob) => {
             capturedBlob = blob;
