@@ -96,15 +96,16 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity id="target" mindar-image-target="targetIndex: 0">
+        <!-- Background plane positioned behind -->
         <a-plane 
-          id="plane"
+          id="plane-bg"
           src="#overlay" 
-          position="0 0 -5" 
+          position="0 0 -0.1" 
           height="1.2" 
           width="1.2" 
           rotation="0 0 0"
           visible="false"
-          material="shader: flat; src: #overlay; transparent: true; alphaTest: 0.1; renderOrder: -1;">
+          material="shader: flat; src: #overlay; transparent: true; alphaTest: 0.1;">
         </a-plane>
       </a-entity>
     </a-scene>
@@ -112,7 +113,7 @@
     <script>
       AFRAME.registerComponent('ar-tracker', {
         init: function () {
-          const planeEl = document.querySelector("#plane");
+          const planeEl = document.querySelector("#plane-bg");
           
           this.el.addEventListener("targetFound", () => {
             if (planeEl) {
