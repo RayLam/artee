@@ -69,6 +69,25 @@
         background-color: #ffffff;
         color: #000;
       }
+      /* Debug UI */
+      #ar-debug-ui {
+        position: fixed;
+        right: 12px;
+        top: 12px;
+        z-index: 100000;
+        background: rgba(0,0,0,0.6);
+        color: #fff;
+        padding: 8px;
+        border-radius: 8px;
+        font-family: sans-serif;
+        font-size: 12px;
+      }
+      #ar-debug-ui button, #ar-debug-ui input {
+        margin-top: 6px;
+        display: block;
+        width: 100%;
+      }
+      #ar-debug-status { color: #0f0; font-family: monospace; margin-top:6px; }
     </style>
   </head>
   <body>
@@ -82,15 +101,26 @@
       </div>
     </div>
 
+    <div id="ar-debug-ui">
+      <div><strong>AR Debug</strong></div>
+      <div id="ar-debug-status">init...</div>
+      <button id="dbg-toggle-visible">Toggle Visible</button>
+      <button id="dbg-use-png">Use PNG</button>
+      <button id="dbg-use-jpeg">Use JPEG</button>
+      <label>Offset X: <span id="dbg-offset-val">-0.06</span></label>
+      <input id="dbg-offset" type="range" min="-0.2" max="0.2" step="0.01" value="-0.06" />
+      <button id="dbg-show-on-target">Show on Target Only</button>
+      <button id="dbg-show-always">Show Always</button>
+    </div>
+
     <a-scene 
-      mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes; missTolerance: 30; warmupTolerance: 1; filterMinCF: 0.00001; filterBeta: [...]"
+      mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes; missTolerance: 30; warmupTolerance: 1; filterMinCF: 0.00001; filterBeta: 0.00[...]"
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights, preserveDrawingBuffer: true, alpha: true" 
       vr-mode-ui="enabled: false" 
       device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <!-- Include both variants so we can fallback if one fails to load -->
         <img id="overlay-png" src="./assets/asset.png?v=11" crossorigin="anonymous" />
         <img id="overlay-jpeg" src="./assets/asset.jpeg" crossorigin="anonymous" />
       </a-assets>
@@ -101,65 +131,112 @@
         <!-- Background plane positioned behind -->
         <a-plane 
           id="plane-bg"
-          src="#overlay-png" 
+          src=""
           position="-0.06 0 -0.1" 
           height="1.2" 
           width="1.2" 
           rotation="0 0 0"
-          visible="false"
-          material="shader: flat; src: #overlay-png; transparent: false; side: double; depthTest: false;">
+          visible="true"
+          material="shader: flat; side: double; depthTest: false;">
         </a-plane>
       </a-entity>
     </a-scene>
 
     <script>
+      // small on-screen debug label already present as #ar-debug-status
+
       AFRAME.registerComponent('ar-tracker', {
         init: function () {
-          const planeEl = document.querySelector("#plane-bg");
-          const pngAsset = document.getElementById('overlay-png');
-          const jpegAsset = document.getElementById('overlay-jpeg');
+          const planeEl = document.querySelector('#plane-bg');
+          const png = document.getElementById('overlay-png');
+          const jpeg = document.getElementById('overlay-jpeg');
+          const status = document.getElementById('ar-debug-status');
 
-          // Pick the first asset that successfully loaded
-          let chosenAssetId = '#overlay-png';
-          try {
-            if (!pngAsset || (pngAsset.naturalWidth === 0 && jpegAsset && jpegAsset.naturalWidth > 0)) {
-              chosenAssetId = '#overlay-jpeg';
-            }
-          } catch (e) {
-            // ignore and stick with default
+          function updateStatus(msg, color){
+            if (status) { status.innerText = msg; status.style.color = color || '#0f0'; }
+            console.log('[ar-debug]', msg);
           }
 
-          // Apply chosen src to plane initially (keeps HTML and material in sync)
-          if (planeEl) {
-            planeEl.setAttribute('src', chosenAssetId);
-            planeEl.setAttribute('material', `shader: flat; src: ${chosenAssetId}; transparent: false; side: double; depthTest: false;`);
-          }
-
-          // Tweakable horizontal offset (negative values move the overlay left)
-          const overlayOffsetX = -0.06; // change this value to fine-tune horizontal alignment
-
-          this.el.addEventListener("targetFound", () => {
-            if (planeEl) {
-              // Re-bind the chosen texture to ensure renderer picks it up
-              planeEl.setAttribute('src', chosenAssetId);
-              planeEl.setAttribute('material', `shader: flat; src: ${chosenAssetId}; transparent: false; side: double; depthTest: false;`);
-              planeEl.setAttribute('position', `${overlayOffsetX} 0 -0.1`);
-              planeEl.setAttribute("visible", "true");
-
-              // Force Three.js texture update if available
+          function applyAsset(assetId, isPNG){
+            if (!planeEl) return;
+            planeEl.setAttribute('src', assetId);
+            planeEl.setAttribute('material', `shader: flat; src: ${assetId}; transparent: ${isPNG}; side: double; depthTest: false;`);
+            try {
               if (planeEl.components && planeEl.components.material && planeEl.components.material.material && planeEl.components.material.material.map) {
                 planeEl.components.material.material.map.needsUpdate = true;
               }
-            }
-          });
+            } catch(e){ console.warn('force needsUpdate failed', e); }
+            updateStatus(`using ${assetId}`);
+            chosen = assetId;
+          }
 
-          this.el.addEventListener("targetLost", () => {
-            if (planeEl) planeEl.setAttribute("visible", "false");
+          // chosen asset id
+          let chosen = null;
+          // initial: prefer png if it has pixels
+          if (png && png.complete && png.naturalWidth > 0) { chosen = '#overlay-png'; }
+          else if (jpeg && jpeg.complete && jpeg.naturalWidth > 0) { chosen = '#overlay-jpeg'; }
+
+          // onload handlers
+          if (png) png.onload = () => { if (!chosen && png.naturalWidth>0) { applyAsset('#overlay-png', true); } };
+          if (jpeg) jpeg.onload = () => { if (!chosen && jpeg.naturalWidth>0) { applyAsset('#overlay-jpeg', false); } };
+
+          // fallback after short wait
+          setTimeout(() => {
+            if (!chosen) {
+              if (png && png.complete && png.naturalWidth>0) { applyAsset('#overlay-png', true); }
+              else if (jpeg && jpeg.complete && jpeg.naturalWidth>0) { applyAsset('#overlay-jpeg', false); }
+              else updateStatus('assets not loaded - check Network/Console', '#ff0');
+            } else {
+              // apply chosen now
+              applyAsset(chosen, chosen === '#overlay-png');
+            }
+          }, 350);
+
+          // overlay offset state
+          let overlayOffsetX = parseFloat(document.getElementById('dbg-offset').value || -0.06);
+          let showOnTargetOnly = false;
+
+          // event listeners for target detection
+          this.el.addEventListener('targetFound', () => {
+            if (!planeEl) return;
+            planeEl.setAttribute('position', `${overlayOffsetX} 0 -0.1`);
+            if (showOnTargetOnly) planeEl.setAttribute('visible', 'true');
+            updateStatus(`targetFound (offset ${overlayOffsetX})`);
           });
+          this.el.addEventListener('targetLost', () => { if (planeEl && showOnTargetOnly) planeEl.setAttribute('visible', 'false'); updateStatus('targetLost'); });
+
+          // Wire debug UI buttons
+          const btnToggle = document.getElementById('dbg-toggle-visible');
+          const btnPng = document.getElementById('dbg-use-png');
+          const btnJpeg = document.getElementById('dbg-use-jpeg');
+          const inputOffset = document.getElementById('dbg-offset');
+          const offsetVal = document.getElementById('dbg-offset-val');
+          const btnShowOn = document.getElementById('dbg-show-on-target');
+          const btnShowAlways = document.getElementById('dbg-show-always');
+
+          if (btnToggle) btnToggle.addEventListener('click', () => {
+            if (!planeEl) return;
+            const vis = planeEl.getAttribute('visible');
+            planeEl.setAttribute('visible', !vis);
+          });
+          if (btnPng) btnPng.addEventListener('click', () => applyAsset('#overlay-png', true));
+          if (btnJpeg) btnJpeg.addEventListener('click', () => applyAsset('#overlay-jpeg', false));
+          if (inputOffset) inputOffset.addEventListener('input', (e) => {
+            overlayOffsetX = parseFloat(e.target.value);
+            if (offsetVal) offsetVal.innerText = overlayOffsetX.toFixed(2);
+            if (planeEl) planeEl.setAttribute('position', `${overlayOffsetX} 0 -0.1`);
+          });
+          if (btnShowOn) btnShowOn.addEventListener('click', () => { showOnTargetOnly = true; if (planeEl) planeEl.setAttribute('visible', 'false'); updateStatus('show on target only'); });
+          if (btnShowAlways) btnShowAlways.addEventListener('click', () => { showOnTargetOnly = false; if (planeEl) planeEl.setAttribute('visible', 'true'); updateStatus('show always'); });
+
+          // apply initial visibility according to showOnTargetOnly
+          if (planeEl && !showOnTargetOnly) planeEl.setAttribute('visible', 'true');
         }
       });
 
-      document.querySelector("#target").setAttribute("ar-tracker", "");
+      // Attach component to target
+      const tgt = document.querySelector('#target');
+      if (tgt) tgt.setAttribute('ar-tracker', '');
 
       const snapBtn = document.querySelector("#snap-btn");
       const modal = document.querySelector("#preview-modal");
