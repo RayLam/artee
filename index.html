@@ -83,7 +83,7 @@
     </div>
 
     <a-scene 
-      mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes; missTolerance: 30; warmupTolerance: 1; filterMinCF: 0.00001; filterBeta: 0.00"
+      mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes; missTolerance: 30; warmupTolerance: 1; filterMinCF: 0.00001; filterBeta: [...]"
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights, preserveDrawingBuffer: true, alpha: true" 
       vr-mode-ui="enabled: false" 
@@ -100,12 +100,12 @@
         <a-plane 
           id="plane-bg"
           src="#overlay" 
-          position="0 0 -0.1" 
+          position="-0.06 0 -0.1" 
           height="1.2" 
           width="1.2" 
           rotation="0 0 0"
           visible="false"
-          material="shader: flat; src: #overlay; transparent: true; alphaTest: 0.1;">
+          material="shader: flat; src: #overlay; transparent: true; alphaTest: 0.1; side: double; depthTest: true;">
         </a-plane>
       </a-entity>
     </a-scene>
@@ -114,11 +114,15 @@
       AFRAME.registerComponent('ar-tracker', {
         init: function () {
           const planeEl = document.querySelector("#plane-bg");
+          // Tweakable horizontal offset (negative values move the overlay left)
+          const overlayOffsetX = -0.06; // change this value to fine-tune horizontal alignment
           
           this.el.addEventListener("targetFound", () => {
             if (planeEl) {
               // Force texture re-binding to fix grey mesh artifact
               planeEl.setAttribute("material", "src", "#overlay");
+              // Apply the horizontal offset to counteract right-shift
+              planeEl.setAttribute('position', `${overlayOffsetX} 0 -0.1`);
               planeEl.setAttribute("visible", "true");
             }
           });
