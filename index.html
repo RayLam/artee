@@ -90,31 +90,19 @@
       device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <img id="overlay" src="./assets/asset.png?v=103" crossorigin="anonymous" />
+        <img id="overlay" src="./assets/asset.png?v=104" crossorigin="anonymous" />
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity id="target" mindar-image-target="targetIndex: 0">
-        <!-- RIGHT SIDE OVERLAY: Shifted 0.7 units right -->
+        <!-- SINGLE LEFT OVERLAY: Pushed further left (-1.2) and scaled up (1.2x1.2) -->
         <a-plane 
-          class="ar-plane"
+          id="plane"
           src="#overlay" 
-          position="0.7 0 0" 
-          height="0.8" 
-          width="0.8" 
-          rotation="0 0 0"
-          visible="false"
-          material="transparent: true; alphaTest: 0.1;">
-        </a-plane>
-
-        <!-- LEFT SIDE OVERLAY: Shifted -0.7 units left -->
-        <a-plane 
-          class="ar-plane"
-          src="#overlay" 
-          position="-0.7 0 0" 
-          height="0.8" 
-          width="0.8" 
+          position="-1.2 0 0" 
+          height="1.2" 
+          width="1.2" 
           rotation="0 0 0"
           visible="false"
           material="transparent: true; alphaTest: 0.1;">
@@ -125,14 +113,14 @@
     <script>
       AFRAME.registerComponent('ar-tracker', {
         init: function () {
-          const planes = document.querySelectorAll(".ar-plane");
+          const planeEl = document.querySelector("#plane");
           
           this.el.addEventListener("targetFound", () => {
-            planes.forEach(plane => plane.setAttribute("visible", "true"));
+            if (planeEl) planeEl.setAttribute("visible", "true");
           });
 
           this.el.addEventListener("targetLost", () => {
-            planes.forEach(plane => plane.setAttribute("visible", "false"));
+            if (planeEl) planeEl.setAttribute("visible", "false");
           });
         }
       });
