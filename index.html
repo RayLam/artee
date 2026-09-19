@@ -90,20 +90,20 @@
       device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <img id="overlay" src="./assets/asset.png?v=104" crossorigin="anonymous" />
+        <img id="overlay" src="./assets/asset.png?v=105" crossorigin="anonymous" />
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity id="target" mindar-image-target="targetIndex: 0">
-        <!-- SINGLE LEFT OVERLAY: Pushed further left (-1.2) and scaled up (1.2x1.2) -->
+        <!-- SINGLE LEFT OVERLAY: Rotated -90deg to align vertically alongside the shirt -->
         <a-plane 
           id="plane"
           src="#overlay" 
           position="-1.2 0 0" 
           height="1.2" 
           width="1.2" 
-          rotation="0 0 0"
+          rotation="0 0 -90"
           visible="false"
           material="transparent: true; alphaTest: 0.1;">
         </a-plane>
