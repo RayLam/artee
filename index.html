@@ -90,28 +90,19 @@
       device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <img id="overlay" src="./assets/asset.png?v=101" crossorigin="anonymous" />
+        <img id="overlay" src="./assets/asset.png?v=102" crossorigin="anonymous" />
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity id="target" mindar-image-target="targetIndex: 0">
-        <!-- Occluder Mask: Invisible plane sitting slightly in front (z=0.01) to hide the tag behind the physical print area -->
-        <a-plane 
-          id="occluder"
-          position="0 0 0.01" 
-          height="0.5" 
-          width="0.8" 
-          material="colorWrite: false;">
-        </a-plane>
-
-        <!-- Digital Graffiti Overlay Tag -->
+        <!-- Expanded overlay shifted slightly up and scaled up so elements spill over the sides -->
         <a-plane 
           id="plane"
           src="#overlay" 
-          position="0 0 0" 
-          height="1.2" 
-          width="1.2" 
+          position="0 0.1 -0.01" 
+          height="1.6" 
+          width="1.6" 
           rotation="0 0 0"
           visible="false"
           material="transparent: true; alphaTest: 0.1;">
@@ -160,7 +151,7 @@
           // 1. Draw live camera video feed
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-          // 2. Overlay WebGL scene (including occluded tag)
+          // 2. Overlay WebGL scene
           ctx.globalCompositeOperation = "source-over";
           ctx.drawImage(webglCanvas, 0, 0, canvas.width, canvas.height);
 
